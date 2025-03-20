@@ -1,0 +1,45 @@
+{% extends 'game/base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>Game History</h2>
+    </div>
+    <div class="card-body">
+        {% if games %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Bet On</th>
+                            <th>Bet Amount</th>
+                            <th>Result</th>
+                            <th>Player Score</th>
+                            <th>Banker Score</th>
+                            <th>Payout</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for game in games %}
+                            <tr>
+                                <td>{{ game.created_at|date:"M d, Y H:i" }}</td>
+                                <td>{{ game.bet_on|title }}</td>
+                                <td>${{ game.bet_amount }}</td>
+                                <td>{{ game.result|title }}</td>
+                                <td>{{ game.player_score }}</td>
+                                <td>{{ game.banker_score }}</td>
+                                <td>${{ game.payout }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p>You haven't played any games yet.</p>
+        {% endif %}
+        
+        <a href="{% url 'new_game' %}" class="btn btn-primary">Play New Game</a>
+    </div>
+</div>
+{% endblock %}

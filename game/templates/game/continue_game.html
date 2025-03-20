@@ -1,0 +1,28 @@
+{% extends 'game/base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>Continue Playing</h2>
+        <p>Round {{ previous_game.round_number|add:"1" }} with the same shoe</p>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="bet_on">Place your bet on:</label>
+                <select name="bet_on" id="bet_on" class="form-control" required>
+                    <option value="player">Player</option>
+                    <option value="banker">Banker</option>
+                    <option value="tie">Tie</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="bet_amount">Bet Amount:</label>
+                <input type="number" name="bet_amount" id="bet_amount" class="form-control" min="1" step="1" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Place Bet</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

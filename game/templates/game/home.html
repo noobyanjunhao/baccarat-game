@@ -1,0 +1,26 @@
+{% extends 'game/base.html' %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-4">Welcome to Baccarat!</h1>
+    <p class="lead">
+        Baccarat is a card game where you bet on which hand will have a total closest to 9: the Player's hand or the Banker's hand.
+    </p>
+    <hr class="my-4">
+    <h3>Game Rules:</h3>
+    <ul>
+        <li>Card values: Aces = 1, 2-9 = face value, 10s and face cards = 0</li>
+        <li>Only the last digit of the total matters (e.g., a total of 15 is worth 5)</li>
+        <li>A "natural" 8 or 9 with the first two cards wins automatically</li>
+        <li>Player draws a third card if their total is 0-5, stands on 6-7</li>
+        <li>Banker's third card draw depends on their total and Player's third card</li>
+        <li>Payouts: Player bet pays 1:1, Banker bet pays 1:1 (minus 5% commission), Tie pays 8:1</li>
+    </ul>
+    
+    {% if user.is_authenticated %}
+        <a class="btn btn-primary btn-lg" href="{% url 'new_game' %}" role="button">Start New Game</a>
+    {% else %}
+        <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">Login to Play</a>
+    {% endif %}
+</div>
+{% endblock %}
