@@ -43,6 +43,16 @@
         </div>
     </div>
     
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div id="debug-info" class="alert alert-secondary">
+                <p>Debug Info:</p>
+                <p>Player Cards: <span id="debug-player-cards">{{ game.player_cards }}</span></p>
+                <p>Banker Cards: <span id="debug-banker-cards">{{ game.banker_cards }}</span></p>
+            </div>
+        </div>
+    </div>
+    
     {% if game_complete %}
     <div class="row mt-4">
         <div class="col-md-12">
@@ -54,7 +64,7 @@
                 <div class="mt-3">
                     <a href="{% url 'continue_game' game.id %}" class="btn btn-success">Continue with Same Shoe</a>
                     <a href="{% url 'new_game' %}" class="btn btn-primary">Start New Game</a>
-                    <a href="{% url 'history' %}" class="btn btn-secondary">View History</a>
+                    <a href="{% url 'game_history' %}" class="btn btn-secondary">View History</a>
                 </div>
             </div>
         </div>
@@ -66,19 +76,36 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const cardBacks = document.querySelectorAll('.card-back');
+        console.log("DOM loaded, initializing card flipping...");
         
-        cardBacks.forEach(card => {
-            const wrapper = card.parentElement;
-            wrapper.addEventListener('click', function() {
-                const cardIndex = this.dataset.index;
-                const cardType = this.dataset.type;
+        // Debug info
+        console.log("Player cards:", {{ game.player_cards|safe }});
+        console.log("Banker cards:", {{ game.banker_cards|safe }});
+        
+        // Get all card wrappers with unflipped cards
+        const cardWrappers = document.querySelectorAll('.card-wrapper');
+        console.log("Found card wrappers:", cardWrappers.length);
+        
+        // Add click event listeners directly to each wrapper with unflipped cards
+        cardWrappers.forEach(wrapper => {
+            const cardBack = wrapper.querySelector('.card-back');
+            if (cardBack) {
+                console.log("Adding click listener to", wrapper.dataset.type, wrapper.dataset.index);
                 
-                flipCard(cardIndex, cardType);
-            });
+                // Add the click event directly to the wrapper
+                wrapper.addEventListener('click', function() {
+                    console.log("Card clicked:", this.dataset.type, this.dataset.index);
+                    flipCard(this.dataset.index, this.dataset.type);
+                });
+            }
         });
         
         function flipCard(index, type) {
+            console.log("Flipping card:", type, index);
+            
+            // Convert index to integer to ensure proper comparison
+            index = parseInt(index);
+            
             fetch(`/game/{{ game.id }}/flip-card/`, {
                 method: 'POST',
                 headers: {
@@ -90,21 +117,50 @@
                     card_type: type
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log("Response received:", response.status);
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Network response was not ok');
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log("Card flipped, received data:", data);
+                
+                // Update the cards display
                 updateCards('player', data.player_cards);
                 updateCards('banker', data.banker_cards);
                 
+                // Update scores
                 document.getElementById('player-score').textContent = data.player_score;
                 document.getElementById('banker-score').textContent = data.banker_score;
                 
+                // Update debug info
+                document.getElementById('debug-player-cards').textContent = 
+                    JSON.stringify(data.player_cards);
+                document.getElementById('debug-banker-cards').textContent = 
+                    JSON.stringify(data.banker_cards);
+                
                 if (data.result) {
-                    showResult(data.result, data.payout);
+                    console.log("Game complete, result:", data.result);
+                    
+                    // Show result in an alert before reloading
+                    alert(`Game Result: ${data.result.toUpperCase()}\nPayout: $${data.payout}`);
+                    
+                    // Reload the page to show the game result and continue button
+                    location.reload();
                 }
+            })
+            .catch(error => {
+                console.error('Error flipping card:', error);
+                alert('Error flipping card: ' + error.message);
             });
         }
         
         function updateCards(type, cards) {
+            console.log("Updating cards for", type, cards);
             const container = document.getElementById(`${type}-cards`);
             container.innerHTML = '';
             
@@ -118,10 +174,14 @@
                 if (card.flipped) {
                     img.src = `/static/images/cards/${card.suit}_${card.value}.png`;
                     img.alt = `${card.value} of ${card.suit}`;
+                    console.log("Card image path:", `/static/images/cards/${card.suit}_${card.value}.png`);
                 } else {
                     img.src = '/static/images/cards/back.png';
                     img.alt = 'Card back';
                     img.className = 'card-back';
+                    console.log("Card back image path:", '/static/images/cards/back.png');
+                    
+                    // Add click event to the wrapper for unflipped cards
                     wrapper.addEventListener('click', function() {
                         flipCard(index, type);
                     });
@@ -130,11 +190,6 @@
                 wrapper.appendChild(img);
                 container.appendChild(wrapper);
             });
-        }
-        
-        function showResult(result, payout) {
-            // Reload the page to show the game result and continue button
-            location.reload();
         }
     });
 </script>

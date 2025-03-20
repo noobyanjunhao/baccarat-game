@@ -73,59 +73,97 @@ class Game(models.Model):
         return card
     
     def deal_initial_cards(self):
-        # Deal 2 cards to player and banker
-        self.player_cards = [self.draw_card(), self.draw_card()]
-        self.banker_cards = [self.draw_card(), self.draw_card()]
+        """Deal initial cards to player and banker"""
+        # Clear existing cards
+        self.player_cards = []
+        self.banker_cards = []
+        
+        # Deal two cards to player and banker
+        for _ in range(2):
+            player_card = self.draw_card()
+            player_card['flipped'] = False  # Explicitly set to False
+            self.player_cards.append(player_card)
+            
+            banker_card = self.draw_card()
+            banker_card['flipped'] = False  # Explicitly set to False
+            self.banker_cards.append(banker_card)
+        
+        # Calculate initial scores
         self.calculate_scores()
         self.save()
+        
+        print(f"Dealt cards - Player: {self.player_cards}, Banker: {self.banker_cards}")
     
     def calculate_scores(self):
+        """Calculate the scores for player and banker hands"""
         self.player_score = self.calculate_hand_score(self.player_cards)
         self.banker_score = self.calculate_hand_score(self.banker_cards)
         self.save()
     
     def calculate_hand_score(self, cards):
+        """Calculate the score for a hand of cards"""
         score = 0
         for card in cards:
-            value = card['value']
-            if value in ['10', 'J', 'Q', 'K']:
-                card_value = 0
-            elif value == 'A':
-                card_value = 1
+            if card['value'] in ['J', 'Q', 'K', '10']:
+                # Face cards are worth 0
+                value = 0
+            elif card['value'] == 'A':
+                # Ace is worth 1
+                value = 1
             else:
-                card_value = int(value)
-            score += card_value
+                # Number cards are worth their face value
+                value = int(card['value'])
+            score += value
         
-        # In Baccarat, only the last digit of the total matters
+        # In Baccarat, only the last digit of the sum matters
         return score % 10
     
     def check_natural(self):
-        # Check if either hand has a natural 8 or 9
-        return self.player_score >= 8 or self.banker_score >= 8
+        """Check if either hand has a natural win (8 or 9)"""
+        if self.player_score >= 8 or self.banker_score >= 8:
+            return True
+        return False
     
     def draw_third_card(self):
-        # Player's third card rule
-        if self.player_score <= 5:
-            self.player_cards.append(self.draw_card())
-            self.calculate_scores()
-            player_third_card_value = self.get_card_value(self.player_cards[2])
-            
-            # Banker's third card rule
-            if self.banker_score <= 2:
-                self.banker_cards.append(self.draw_card())
-            elif self.banker_score == 3 and player_third_card_value != 8:
-                self.banker_cards.append(self.draw_card())
-            elif self.banker_score == 4 and player_third_card_value in [2, 3, 4, 5, 6, 7]:
-                self.banker_cards.append(self.draw_card())
-            elif self.banker_score == 5 and player_third_card_value in [4, 5, 6, 7]:
-                self.banker_cards.append(self.draw_card())
-            elif self.banker_score == 6 and player_third_card_value in [6, 7]:
-                self.banker_cards.append(self.draw_card())
-        elif self.banker_score <= 5:
-            # If player stands with 6 or 7, banker draws on 0-5
-            self.banker_cards.append(self.draw_card())
+        """Draw a third card according to Baccarat rules"""
+        # Player draws first if needed
+        if len(self.player_cards) == 2 and self.player_score <= 5:
+            player_third = self.draw_card()
+            player_third['flipped'] = True  # Third card is automatically flipped
+            self.player_cards.append(player_third)
+            # Recalculate player score
+            self.player_score = self.calculate_hand_score(self.player_cards)
         
-        self.calculate_scores()
+        # Banker draws based on complex rules
+        if len(self.banker_cards) == 2:
+            if self.banker_score <= 2:
+                # Banker always draws with 0-2
+                banker_third = self.draw_card()
+                banker_third['flipped'] = True
+                self.banker_cards.append(banker_third)
+            elif self.banker_score == 3 and (len(self.player_cards) != 3 or self.player_cards[2]['value'] != '8'):
+                # Banker draws with 3 unless player's third card is 8
+                banker_third = self.draw_card()
+                banker_third['flipped'] = True
+                self.banker_cards.append(banker_third)
+            elif self.banker_score == 4 and len(self.player_cards) == 3 and self.player_cards[2]['value'] in ['2', '3', '4', '5', '6', '7']:
+                # Banker draws with 4 if player's third card is 2-7
+                banker_third = self.draw_card()
+                banker_third['flipped'] = True
+                self.banker_cards.append(banker_third)
+            elif self.banker_score == 5 and len(self.player_cards) == 3 and self.player_cards[2]['value'] in ['4', '5', '6', '7']:
+                # Banker draws with 5 if player's third card is 4-7
+                banker_third = self.draw_card()
+                banker_third['flipped'] = True
+                self.banker_cards.append(banker_third)
+            elif self.banker_score == 6 and len(self.player_cards) == 3 and self.player_cards[2]['value'] in ['6', '7']:
+                # Banker draws with 6 if player's third card is 6-7
+                banker_third = self.draw_card()
+                banker_third['flipped'] = True
+                self.banker_cards.append(banker_third)
+        
+        # Recalculate banker score
+        self.banker_score = self.calculate_hand_score(self.banker_cards)
         self.save()
     
     def get_card_value(self, card):

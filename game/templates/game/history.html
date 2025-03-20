@@ -13,7 +13,7 @@
                         <tr>
                             <th>Date</th>
                             <th>Bet On</th>
-                            <th>Bet Amount</th>
+                            <th>Buy-in</th>
                             <th>Result</th>
                             <th>Player Score</th>
                             <th>Banker Score</th>
@@ -25,7 +25,7 @@
                             <tr>
                                 <td>{{ game.created_at|date:"M d, Y H:i" }}</td>
                                 <td>{{ game.bet_on|title }}</td>
-                                <td>${{ game.bet_amount }}</td>
+                                <td>${{ game.buy_in }}</td>
                                 <td>{{ game.result|title }}</td>
                                 <td>{{ game.player_score }}</td>
                                 <td>{{ game.banker_score }}</td>
